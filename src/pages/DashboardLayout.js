@@ -1,19 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './Dashboard.css';
 import './Workouts';
 import './Nutrition';
 
 const DashboardLayout = ({ data, onResetSummary }) => {
   const navigate = useNavigate();
+  const [showChallenges, setShowChallenges] = useState(false);
+  const [challengeList, setChallengeList] = useState([]);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchChallenges = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:5000/api/challenges/daily', { // Target backend on port 5000
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setChallengeList(response.data);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load challenges');
+      }
+    };
+
+    fetchChallenges();
+  }, []);
+
+  const handleChallengeToggle = async (index) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        `http://localhost:5000/api/challenges/daily/${index}`, // Target backend on port 5000
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setChallengeList(response.data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update challenge');
+    }
+  };
 
   const handleReset = () => {
-    // Call the parent component's reset function
     if (onResetSummary) {
       onResetSummary({
         calories: 0,
         workouts: 0,
-        // Add any other fields you want to reset here
       });
     }
   };
@@ -23,6 +55,14 @@ const DashboardLayout = ({ data, onResetSummary }) => {
       <div className="dashboard-header">
         <h1 className="greeting">Hi, {data.name}! Hope you're doing well!</h1>
         <p className="subtext">Your progress is looking good! Keep up the good work!</p>
+        <div className="daily-challenges-container">
+          <button
+            className="daily-challenges-btn"
+            onClick={() => setShowChallenges(true)}
+          >
+            Daily Challenges
+          </button>
+        </div>
       </div>
 
       <div className="summary-section">
@@ -62,7 +102,6 @@ const DashboardLayout = ({ data, onResetSummary }) => {
         </div>
       </div>
 
-      {/* Rest of your component remains the same */}
       {/* Workouts */}
       <div className="section">
         <div className="section-header">
@@ -118,6 +157,42 @@ const DashboardLayout = ({ data, onResetSummary }) => {
           ))}
         </div>
       </div>
+
+      {showChallenges && (
+        <div className="daily-challenges-modal">
+          <div className="daily-challenges-modal-content">
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
+            <h2 className="daily-challenges-title">Daily Challenges</h2>
+            <ul className="daily-challenges-list">
+              {challengeList.map((challenge, index) => (
+                <li key={index} className="daily-challenges-item">
+                  <label className="challenge-label">
+                    <input
+                      type="checkbox"
+                      checked={challenge.completed}
+                      onChange={() => handleChallengeToggle(index)}
+                      className="challenge-checkbox"
+                    />
+                    <span className={challenge.completed ? 'challenge-text-completed' : 'challenge-text'}>
+                      {challenge.text}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <button
+              className="daily-challenges-close-btn"
+              onClick={() => setShowChallenges(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
