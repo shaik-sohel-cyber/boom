@@ -18,10 +18,11 @@ const Dashboard = () => {
       }
 
       try {
-        const response = await axios.get('http://localhost:5000/api/auth/user', {
+        const response = await axios.get('https://deploy-mern-app-1-api.vercel.app/api/auth/user', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(response.data);
+        localStorage.setItem('userEmail', response.data.email); // Save for later if needed
       } catch (err) {
         setError('Failed to fetch user data');
         localStorage.removeItem('token');
@@ -31,10 +32,12 @@ const Dashboard = () => {
     fetchUser();
   }, []);
 
-  let DashboardComponent = D3; // Default to D3
-  if (user?.email === 'alex@example.com') {
+  const email = user?.email || localStorage.getItem('userEmail');
+
+  let DashboardComponent = D3;
+  if (email === 'alex@example.com') {
     DashboardComponent = D1;
-  } else if (user?.email === 'tony@example.com') {
+  } else if (email === 'tony@example.com') {
     DashboardComponent = D2;
   }
 
@@ -47,7 +50,7 @@ const Dashboard = () => {
         ) : user ? (
           <DashboardComponent userName={user.name} />
         ) : (
-          <div>Loading...</div>
+          <div style={{ textAlign: 'center' }}>Loading...</div>
         )}
       </div>
     </div>
